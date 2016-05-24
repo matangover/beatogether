@@ -22,18 +22,10 @@ def start(ut):
                     print "Skeleton state:", user.skeleton.state
                     continue
 
-                # for joint_type, joint_type_name in nite2.c_api.NiteJointType._values_.items():
-                #     joint = user.skeleton.joints[joint_type]
-                #     print joint_type_name, joint_type
-                #     print joint
-
-                    #print joint.jointType, joint.position.....
 
 
-                ##  vars:
+            ## vars:
                 skeleton = nite2.Skeleton(user.skeleton)
-                #x, y = ut.convert_joint_coordinates_to_depth(head.position.x, head.position.y, head.position.z)
-
                 head = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_HEAD)
                 nack = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_NECK)
                 torso = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_TORSO)
