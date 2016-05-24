@@ -1,8 +1,8 @@
 from collections import namedtuple
 
 class Instrument(object):
-    def __init__(self):
-        pass
+    def __init__(self, live_set):
+        self.live_set = live_set
     
     @classmethod    
     def get_parameters(cls):

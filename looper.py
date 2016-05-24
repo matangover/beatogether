@@ -1,6 +1,8 @@
+import live
+from instruments.drums import Drums
 
 class AbletonLooper(object):
-    TRACKS = [Drums, Synth,]
+    #TRACKS = [Drums, Synth,]
     METER = 4
     BARS_IN_LOOP = 4
 
@@ -33,3 +35,14 @@ class AbletonLooper(object):
         value (float between 0 and 1).
         """
         pass
+
+
+def main():
+    live_set = live.Set()
+    live_set.scan(scan_clip_names=True, scan_devices=True)
+    drums = Drums(live_set)
+    drums.set_base(0.2)
+    
+    
+if __name__ == "__main__":
+    main()
