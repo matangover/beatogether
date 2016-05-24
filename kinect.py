@@ -8,7 +8,7 @@ from primesense import openni2, nite2
 
 class KinectInterface(object):
     def __init__(self):
-        self.param_values = (0, 0)
+        self.param_values = (0, 0, 0, 0)
 
     def start(self):
         openni2.initialize("/usr/local/Cellar/openni2/2.2.0.33/lib/ni2")
@@ -61,9 +61,9 @@ class KinectInterface(object):
 
             ## get head position
                 # to change before presentation!!
-                max_head = 400;
-                min_head = -200;
-                relitive_head = float(head.position.y - min_head) / float(max_head - min_head)
+                max_head = 400
+                min_head = -200
+                relitive_head = min(1, max(0, float(head.position.y - min_head) / float(max_head - min_head)))
                 # print "Raw head position: ", head.position.y
                 #print "~~~~~~~~~~~~~~~~~~~~ Relative head position: ", relitive_head, "   ~~~~~~~~~~~~~~~~~~~~~~~"
 
@@ -90,14 +90,14 @@ class KinectInterface(object):
             ## get hands y height
                 min_hands = -150
                 max_hands = 750
-                left_hand_pos = float(left_hand.position.y - min_hands) / (max_hands - min_hands);
+                left_hand_pos = float(left_hand.position.y - min_hands) / (max_hands - min_hands)
                 left_hand_pos = min(1, max(0, left_hand_pos))
                 #print "~~~~~~~~~~~~~~~~~~~~ Left Hand Y cord: ", left_hand_pos, "   ~~~~~~~~~~~~~~~~~~~~~~~"
-                right_hand_pos = float(right_hand.position.y - min_hands) / (max_hands - min_hands);
+                right_hand_pos = float(right_hand.position.y - min_hands) / (max_hands - min_hands)
                 right_hand_pos = min(1, max(0, right_hand_pos))
                 #print "~~~~~~~~~~~~~~~~~~~~ Right Hand Y cord: ", right_hand_pos, "   ~~~~~~~~~~~~~~~~~~~~~~~"
 
-                self.param_values = (right_hand_pos, left_hand_pos)
+                self.param_values = (right_hand_pos, left_hand_pos, relitive_head, relative_body_distance)
 
 
 # func to calc euclidean distance
