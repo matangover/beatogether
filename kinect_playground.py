@@ -11,7 +11,10 @@ import time
 def start_kinect_tracking():
     global kinect
     kinect = KinectInterface()
-    kinect.start()
+    try:
+        kinect.start()
+    except KeyboardInterrupt:
+        return
 
 def start_ableton_thread():
     t = Thread(target=ableton_thread)
@@ -35,7 +38,10 @@ def ableton_thread():
 
 def main():
     start_ableton_thread()
+    # This runs the kinect loop until Ctrl+C
     start_kinect_tracking()
+    return
+
 
 
 if __name__ == "__main__":
