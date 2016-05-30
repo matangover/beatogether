@@ -4,9 +4,9 @@ from kinect import KinectInterface
 from threading import Thread
 import graphic
 
+kinect = KinectInterface()
+
 def start_kinect_tracking():
-    global kinect
-    kinect = KinectInterface()
     kinect.start()
 
 def start_graphics_thread():

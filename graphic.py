@@ -15,17 +15,27 @@ RED = (255, 0, 0)
 MIX = (150, 150, 255)
 
 
-def draw_stick_figure(kinect, screen, x, y):
+def draw_stick_figure(kinect, screen):
     # Head
-    pygame.draw.ellipse(screen, MIX, [x, y, 20, 20], 0)
+    #pygame.draw.ellipse(screen, MIX, [x, y, 20, 20], 0)
 
 
     skeleton = kinect.skeleton
+    if not skeleton:
+        return
+
     for i in range(15):
         position = skeleton.get_joint(i).position
         x, y = kinect.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
-        pygame.draw.ellipse(screen, MIX, [x, y, 20, 20], 0)
+        try:
+            x, y = int(x), int(y)
+            print "X: %s, Y: %s", (x,y)
+            pygame.draw.ellipse(screen, MIX, [x, y, 20, 20], 0)
 
+        except Exception as e:
+            print e
+
+def start(kinect):
     # Setup
     pygame.init()
 
@@ -55,9 +65,9 @@ def draw_stick_figure(kinect, screen, x, y):
         # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
 
         # Call draw stick figure function
-        #pos = pygame.mouse.get_pos()
+        # pos = pygame.mouse.get_pos()
         # = pos[0]
-        #y = pos[1]
+        # y = pos[1]
 
         # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
 
@@ -66,7 +76,7 @@ def draw_stick_figure(kinect, screen, x, y):
         # First, clear the screen to white. Don't put other drawing commands
         # above this, or they will be erased with this command.
         screen.fill(WHITE)
-        draw_stick_figure(screen, x, y)
+        draw_stick_figure(kinect, screen)
 
         # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
 
@@ -81,10 +91,6 @@ def draw_stick_figure(kinect, screen, x, y):
     # on exit if running from IDLE.
     pygame.quit()
 
-def start(kinect):
-    while True:
-        time.sleep(0.1)
-        draw_stick_figure(kinect)
 
 
 
