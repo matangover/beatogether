@@ -9,6 +9,7 @@ from primesense import openni2, nite2
 class KinectInterface(object):
     def __init__(self):
         self.param_values = (0, 0, 0, 0)
+        self.skeleton = None
 
     def start(self):
         openni2.initialize("/usr/local/Cellar/openni2/2.2.0.33/lib/ni2")
@@ -37,6 +38,7 @@ class KinectInterface(object):
 
             ## vars:
                 skeleton = nite2.Skeleton(user.skeleton)
+                self.skeleton = skeleton
                 head = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_HEAD)
                 nack = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_NECK)
                 torso = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_TORSO)

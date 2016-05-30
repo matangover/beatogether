@@ -10,7 +10,6 @@ import time
 
 def start_kinect_tracking():
     global kinect
-    print "fix bug"
     kinect = KinectInterface()
     kinect.start()
 
