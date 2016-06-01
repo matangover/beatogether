@@ -19,6 +19,16 @@ class KinectInterface(object):
         self.user_tracker = nite2.UserTracker(dev)
         self.user_tracker_loop()
 
+
+    def get_joint_positions(self):
+        positionList = []
+        for i in range(15):
+            position = self.skeleton.get_joint(i).position
+            x, y = self.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
+            positionList.append((x,y))
+        return positionList
+
+
     def user_tracker_loop(self):
         while True:
             frame = self.user_tracker.read_frame()

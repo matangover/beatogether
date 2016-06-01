@@ -20,13 +20,15 @@ def draw_stick_figure(kinect, screen):
     #pygame.draw.ellipse(screen, MIX, [x, y, 20, 20], 0)
 
 
-    skeleton = kinect.skeleton
-    if not skeleton:
-        return
+    #skeleton = kinect.skeleton
+    #if not skeleton:
+    #    return
 
-    for i in range(15):
-        position = skeleton.get_joint(i).position
-        x, y = kinect.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
+    joint_positions = kinect.get_joint_positions()
+    for x, y in joint_positions:
+        #
+        # position = skeleton.get_joint(i).position
+        # x, y = kinect.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
         try:
             x, y = int(x), int(y)
             print "X: %s, Y: %s", (x,y)
@@ -36,7 +38,7 @@ def draw_stick_figure(kinect, screen):
             print e
 
 def start(kinect):
-    # Setup
+    #
     pygame.init()
 
     # Set the width and height of the screen [width,height]
