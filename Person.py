@@ -11,7 +11,7 @@ class Person(object):
     def __init__(self, role, user):
         self.role = role
         self.user = user
-        self.param_values = [0, 0, 0, 0, 0, 0]
+        self.param_values = [0, 0, 0, 0, 0]
         self.saved_joint_distances = DataFrame()
         self.last_joint_positions = None
         self.skeleton = None
