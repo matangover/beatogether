@@ -3,6 +3,7 @@ from pandas import DataFrame, Series
 import math
 from primesense import openni2, nite2
 import time
+import numpy as np
 
 class Person(object):
     MOVEMENT_SMOOTHING_WINDOW_SIZE_SECONDS = 0.1
@@ -16,12 +17,12 @@ class Person(object):
         self.skeleton = None
 
     def update_skeleton(self, skeleton, timestamp):
-        self.skeleton = skeleton
+        self.skeleton = nite2.Skeleton(skeleton)
         # Round to milliseconds
         timestamp = round(timestamp, 3)
         timestamp_datetime = pd.to_datetime(timestamp, unit="s")
         skeleton = nite2.Skeleton(skeleton)
-        joint_positions = self.get_joint_positions(skeleton)
+        joint_positions = self.get_joint_positions()
         #print "Joint positions:", joint_positions
         # TODO: ignore low confidence joints
         if self.last_joint_positions is not None:
@@ -46,15 +47,8 @@ class Person(object):
         #if len(self.saved_joint_distances.shape) == 25:
         #    print "yoo"
         
-        head = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_HEAD)
-        nack = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_NECK)
-        torso = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_TORSO)
-        right_hip = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_RIGHT_HIP)
-        right_knee = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_RIGHT_KNEE)
-        right_foot = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_RIGHT_FOOT)
-        left_hand = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_LEFT_HAND)
-        right_hand = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_RIGHT_HAND)
-
+        head, neck, left_shoulder, right_shoulder, left_elbow, right_elbow, left_hand, right_hand, \
+        torso, left_hip, right_hip, left_knee, right_knee, left_foot, right_foot = self.get_joints()
 
         #################       get hands y height       #################
         min_hands = -300
@@ -103,10 +97,22 @@ class Person(object):
             # print "~~~~~~~~~~~~~~~~~~~~ Relative hand distance: ", hands_distance_pos
             self.param_values[4] = hands_distance_pos
             
-    
-    @staticmethod
-    def get_joint_positions(skeleton):
-        return [skeleton.get_joint(i).position for i in xrange(15)]
+        if neck.positionConfidence >= 0.5 and torso.positionConfidence >= 0.5:
+            torso_vector = get_vector(neck.position, torso.position)
+            if right_hand.positionConfidence >= 0.5 and right_shoulder.positionConfidence >= 0.5:
+                rh_vector = get_vector(right_hand.position, right_shoulder.position)
+                rh_angle_rad = angle_between(torso_vector, rh_vector)
+                self.rh_angle = rh_angle_rad / math.pi * 180
+            if left_hand.positionConfidence >= 0.5 and left_shoulder.positionConfidence >= 0.5:
+                lh_vector = get_vector(left_hand.position, left_shoulder.position)
+                lh_angle_rad = angle_between(torso_vector, lh_vector)
+                self.lh_angle = lh_angle_rad / math.pi * 180
+
+    def get_joint_positions(self):
+        return [joint.position for joint in self.get_joints()]
+
+    def get_joints(self):
+        return [self.skeleton.get_joint(i) for i in xrange(15)]
 
 
 
@@ -115,3 +121,24 @@ def calcDist(right_position, left_position):
     return math.sqrt(pow(abs(right_position.x - left_position.x), 2) + \
                      pow(abs(right_position.y - left_position.y), 2) + \
                      pow(abs(right_position.z - left_position.z), 2))
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+def get_vector(p1, p2):
+    return (p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
