@@ -1,17 +1,49 @@
+import pandas as pd
+from pandas import DataFrame, Series
 import math
-
 from primesense import openni2, nite2
+import time
 
 class Person(object):
-
+    MOVEMENT_SMOOTHING_WINDOW_SIZE_SECONDS = 0.1
+    
     def __init__(self, role, user):
         self.role = role
         self.user = user
-        self.param_values = [0, 0, 0, 0, 0]
+        self.param_values = [0, 0, 0, 0, 0, 0]
+        self.saved_joint_distances = DataFrame()
+        self.last_joint_positions = None
 
-
-    def get_params(self):
-        skeleton = nite2.Skeleton(self.user.skeleton)
+    def update_skeleton(self, skeleton, timestamp):
+        # Round to milliseconds
+        timestamp = round(timestamp, 3)
+        timestamp_datetime = pd.to_datetime(timestamp, unit="s")
+        skeleton = nite2.Skeleton(skeleton)
+        joint_positions = self.get_joint_positions(skeleton)
+        #print "Joint positions:", joint_positions
+        # TODO: ignore low confidence joints
+        if self.last_joint_positions is not None:
+            joint_distances = [calcDist(p1, p2) for p1, p2 in zip(joint_positions, self.last_joint_positions)]
+            #print "Joint distances:", joint_distances
+            joint_distances_series = Series(joint_distances, name=timestamp_datetime)
+            self.saved_joint_distances = self.saved_joint_distances.append(joint_distances_series)
+            
+        self.last_joint_positions = joint_positions
+        window_start_epoch = time.time() - self.MOVEMENT_SMOOTHING_WINDOW_SIZE_SECONDS
+        window_start = pd.to_datetime(window_start_epoch, unit="s")
+        #self.saved_joint_distances.sort(inplace=True)
+        self.saved_joint_distances = self.saved_joint_distances.truncate(before=window_start)
+        
+        # Weighted average
+        #print "Saved:"
+        #print self.saved_joint_distances
+        resampled = self.saved_joint_distances.asfreq("1ms").fillna(0)
+        mean_joint_distance = resampled.mean().mean()
+        #print "Mean joint movement:", mean_joint_distance
+        
+        #if len(self.saved_joint_distances.shape) == 25:
+        #    print "yoo"
+        
         head = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_HEAD)
         nack = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_NECK)
         torso = skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_TORSO)
@@ -68,8 +100,12 @@ class Person(object):
             # print "~~~~~~~~~~~~~~~~~~~~ Hands Position: ", hands_distance, "   ~~~~~~~~~~~~~~~~~~~~~~~"
             # print "~~~~~~~~~~~~~~~~~~~~ Relative hand distance: ", hands_distance_pos
             self.param_values[4] = hands_distance_pos
+            
+    
+    @staticmethod
+    def get_joint_positions(skeleton):
+        return [skeleton.get_joint(i).position for i in xrange(15)]
 
-        return self.param_values
 
 
 # func to calc euclidean distance
