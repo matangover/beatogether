@@ -15,7 +15,8 @@ class Person(object):
         self.saved_joint_distances = DataFrame()
         self.last_joint_positions = None
         self.skeleton = None
-
+        self.mean_joint_distance = 0
+        
     def update_skeleton(self, skeleton, timestamp):
         self.skeleton = nite2.Skeleton(skeleton)
         # Round to milliseconds
@@ -41,7 +42,8 @@ class Person(object):
         #print "Saved:"
         #print self.saved_joint_distances
         resampled = self.saved_joint_distances.asfreq("1ms").fillna(0)
-        mean_joint_distance = resampled.mean().mean()
+        self.mean_joint_distance = resampled.mean().mean()
+        #self.normalized_mean_joint_distance = self.mean_joint_distance / 
         #print "Mean joint movement:", mean_joint_distance
         
         #if len(self.saved_joint_distances.shape) == 25:
