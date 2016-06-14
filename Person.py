@@ -13,8 +13,10 @@ class Person(object):
         self.param_values = [0, 0, 0, 0, 0, 0]
         self.saved_joint_distances = DataFrame()
         self.last_joint_positions = None
+        self.skeleton = None
 
     def update_skeleton(self, skeleton, timestamp):
+        self.skeleton = skeleton
         # Round to milliseconds
         timestamp = round(timestamp, 3)
         timestamp_datetime = pd.to_datetime(timestamp, unit="s")
