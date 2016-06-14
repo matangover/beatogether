@@ -5,7 +5,7 @@ import time
 
 class KinectInterface(object):
     MAX_GESTURE_DISTANCE_FROM_JOINT = 500
-    
+
     def __init__(self):
         self.visible_users = set()
         self.skeleton_state = {}
@@ -20,20 +20,20 @@ class KinectInterface(object):
         self.hand_tracker.start_gesture_detection(nite2.c_api.NiteGestureType.NITE_GESTURE_CLICK)
         #self.hand_tracker.start_gesture_detection(nite2.c_api.NiteGestureType.NITE_GESTURE_WAVE)
         self.hand_listener = HandListener(self.hand_tracker, self.gesture_received)
-        self.user_listener = UserListener(self.user_tracker)
+        self.user_listener = UserListener(self.user_tracker, self.pose_detected)
         
     def stop(self):
         self.hand_listener.close()
         self.user_listener.close()
         nite2.unload()
 
-    def get_joint_positions(self):
-        positionList = []
-        for i in range(15):
-            position = self.skeleton.get_joint(i).position
-            x, y = self.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
-            positionList.append((x,y))
-        return positionList
+    # def get_joint_positions(self):
+    #     positionList = []
+    #     for i in range(15):
+    #         position = self.skeleton.get_joint(i).position
+    #         x, y = self.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
+    #         positionList.append((x,y))
+    #     return positionList
         
     def gesture_received(self, gesture):
         print "Gesture! Type:", gesture.type, " Position:", gesture.currentPosition
@@ -63,7 +63,9 @@ class KinectInterface(object):
             
         return closest_hand[:2]
                 
-        
+    
+    def pose_detected(self, user_id, pose_type):
+        print "Pose detected! Type:", pose_type, " User:", user_id
 
 class HandListener(nite2.HandTrackerListener):
     def __init__(self, hand_tracker, gesture_callback):
@@ -94,12 +96,16 @@ class HandListener(nite2.HandTrackerListener):
                 
 
 class UserListener(nite2.UserTrackerListener):
-    def __init__(self, user_tracker):
+    POSE_HOLD_MINIMUM_TIME = 1
+
+    def __init__(self, user_tracker, pose_callback):
         super(UserListener, self).__init__(user_tracker)
         self.last_ts = None
         self.visible_users = set()
         self.skeleton_state = {}
         self.tracked_users = {}
+        self.users_poses = {}
+        self.pose_callback = pose_callback
 
     def on_ready_for_next_frame(self):
         if not self.user_tracker:
@@ -123,11 +129,14 @@ class UserListener(nite2.UserTrackerListener):
             self.track_user_visibility(user)
             self.track_skeleton_state(user)
             self.update_skeleton(user, frame_timestamp)
+            self.track_poses(user, frame_timestamp)
 
     def start_tracking_if_needed(self, user):
         if user.is_new():
             print "Found new user, starting to track:", user.id
             self.user_tracker.start_skeleton_tracking(user.id)
+            self.user_tracker.start_pose_detection(user.id, nite2.c_api.NitePoseType.NITE_POSE_PSI)
+            self.user_tracker.start_pose_detection(user.id, nite2.c_api.NitePoseType.NITE_POSE_CROSSED_HANDS)
             
     def track_user_visibility(self, user):
         if user.is_visible() and not user.id in self.visible_users:
@@ -156,3 +165,20 @@ class UserListener(nite2.UserTrackerListener):
             person.update_skeleton(user.skeleton, frame_timestamp)
         elif user.id in self.tracked_users:
             del self.tracked_users[user.id]
+
+    def track_poses(self, user, frame_timestamp):
+        user_poses = self.users_poses.setdefault(user.id, {})
+        for pose_type in (
+            nite2.c_api.NitePoseType.NITE_POSE_PSI,
+            nite2.c_api.NitePoseType.NITE_POSE_CROSSED_HANDS
+        ):
+            pose = user.get_pose(pose_type)
+            if pose.is_entered():
+                user_poses[pose_type] = frame_timestamp
+            elif pose.is_held() or pose.is_exited():
+                pose_start_time = user_poses.get(pose_type)
+                if pose_start_time and frame_timestamp - pose_start_time >= self.POSE_HOLD_MINIMUM_TIME:
+                    # Remove the pose so that it's not triggered again.
+                    del user_poses[pose_type]
+                    self.pose_callback(user.id, pose_type)
+            
