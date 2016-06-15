@@ -20,6 +20,13 @@ class Instrument(object):
     			return track
     	raise KeyError(name)
         
+    def get_device_named(self, name, track=None):
+        track = track or self.get_track()
+    	for device in track.devices:
+    		if device.name == name:
+    			return device
+    	raise KeyError(name)
+        
     def get_track_name(self, base_name=None):
         base_name = base_name or self.TRACK_NAME_BASE
         return "%s %s" % (base_name, self.role)
@@ -49,5 +56,17 @@ class Instrument(object):
         # Play the clip again. It will stop recording and start playing back the loop.
         self.live_set.play_clip(recording_track.index, self.next_record_slot - 1)
         self.recording_ended_callback(self.role)
+    
+    def mute(self, muted):
+        muted = int(muted)
+        track = self.get_track()
+        print "Set muted for %s: %s" % (track.name, muted)
+        track.set_mute(muted)
+        
+    def activate(self):
+        self.mute(False)
+        
+    def deactivate(self):
+        self.mute(True)
         
 Parameter = namedtuple("Parameter", ("name", "set_value_func",))

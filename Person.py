@@ -9,6 +9,7 @@ class Person(object):
     MOVEMENT_SMOOTHING_WINDOW_SIZE_SECONDS = 0.1
     
     def __init__(self):
+        # lh_y, rh_y, head_y, body_z, hand_dist
         self.param_values = [0, 0, 0, 0, 0]
         self.saved_joint_distances = DataFrame()
         self.last_joint_positions = None

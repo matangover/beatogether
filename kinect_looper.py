@@ -91,7 +91,8 @@ class KinectLooper(object):
             else:
                 track = Track.DRUMS
             print "Other hand angle is:", other_hand_angle
-            self.activate_track(user_id, track)
+            # TODO: Disabled for now - use for "effects" mode
+            #self.activate_track(user_id, track)
     
     def activate_track(self, user_id, track):
         user = self.kinect.user_listener.tracked_users[user_id]
@@ -104,11 +105,13 @@ class KinectLooper(object):
         print "Activating track %s for user %s (previous track: %s)" % (track, user_id, previous_track)
         self.active_tracks[role] = track
         if previous_track is not None:
+            self.user_tracks[user.role][previous_track].deactivate()
             self.user_tracks[user.role][previous_track].player = None
         if track is not None:
             track = self.user_tracks[user.role][track]
             print "Set track! track=%s, user=%s" % (track, user)
             track.player = user
+            track.activate()
             
     def pose_detected(self, user_id, pose):
         if pose == nite2.c_api.NitePoseType.NITE_POSE_PSI:
@@ -158,8 +161,9 @@ def main():
     
 class Track(object):
     DRUMS = 0
-    MELODY = 1
-    HARMONY = 2
+    HARMONY = 1
+    MELODY = 2
+
 
     
 if __name__ == "__main__":
