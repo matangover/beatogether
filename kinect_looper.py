@@ -31,9 +31,9 @@ class KinectLooper(object):
         self.active_tracks = {}
         for role in (UserRole.RIGHT_USER, UserRole.LEFT_USER):
             self.user_tracks[role] = {
-                Track.MELODY: SynthLead(self.live_set, role),
-                Track.HARMONY: SynthHarmony(self.live_set, role),
-                Track.DRUMS: Drums(self.live_set, role)
+                Track.MELODY: SynthLead(self.live_set, role, self.recording_ended),
+                Track.HARMONY: SynthHarmony(self.live_set, role, self.recording_ended),
+                Track.DRUMS: Drums(self.live_set, role, self.recording_ended)
             }
             self.active_tracks[role] = None
 
@@ -60,17 +60,21 @@ class KinectLooper(object):
                     #print "1/16 tick"
                     # We only update every sixteenth note (~80ms).
                     self.midi_tick(tick_count)
+                    
+                if tick_count % (24 * 8) == 0:
+                    self.log_status()
             
     def midi_tick(self, tick_count):
         for user_tracks in self.user_tracks.values():
             for track in user_tracks.values():
                 track.tick(tick_count)
-        
-        #print "Params: (%.3f, %.3f, %.3f, %.3f)" % self.kinect.param_values
-        #self.drums.set_parameter1(right_hand)
-        #self.drums.set_parameter2(left_hand)
-        #self.melody.set_volume(1 - head_height)
-        #self.harmony.set_volume(1 - body_depth)
+    
+    def log_status(self):
+        print "Tracked users:", [
+            "id: %s, role: %s" % (user_id, user.role) \
+            for user_id, user in self.kinect.user_listener.tracked_users.items()
+        ]
+        print "Active tracks:", self.active_tracks
         
     def gesture_received(self, user_id, hand, gesture):
         if gesture.type == nite2.c_api.NiteGestureType.NITE_GESTURE_CLICK:
@@ -102,7 +106,9 @@ class KinectLooper(object):
         if previous_track is not None:
             self.user_tracks[user.role][previous_track].player = None
         if track is not None:
-            self.user_tracks[user.role][track].player = user
+            track = self.user_tracks[user.role][track]
+            print "Set track! track=%s, user=%s" % (track, user)
+            track.player = user
             
     def pose_detected(self, user_id, pose):
         if pose == nite2.c_api.NitePoseType.NITE_POSE_PSI:
@@ -121,6 +127,7 @@ class KinectLooper(object):
             in self.kinect.user_listener.tracked_users.items()
         ]
         # Activate drums track for all users.
+        # TODO: Keep active tracks for existing user?
         for user_id in self.kinect.user_listener.tracked_users:
             self.activate_track(user_id, Track.DRUMS)
         
@@ -131,6 +138,18 @@ class KinectLooper(object):
         print "User removed:", user_id
         self.activate_track(user_id, None)
 
+    def recording_ended(self, role):
+        print "Activating next track for role: %s" % role
+        # Activate next track
+        active_track = self.active_tracks[role]
+        user_id = self.get_user_id_by_role(role)
+        self.activate_track(user_id, (active_track + 1) % 3)
+        
+    def get_user_id_by_role(self, role):
+        for user_id, user in self.kinect.user_listener.tracked_users.items():
+            if user.role == role:
+                return user_id
+
 
 def main():
     looper = KinectLooper()
@@ -138,9 +157,10 @@ def main():
     signal.pause()
     
 class Track(object):
-    MELODY = 0,
-    HARMONY = 1,
-    DRUMS = 2
+    DRUMS = 0
+    MELODY = 1
+    HARMONY = 2
+
     
 if __name__ == "__main__":
     main()

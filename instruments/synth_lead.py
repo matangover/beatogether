@@ -13,8 +13,8 @@ EOLIAN_SCALE = [0, 2, 3, 5, 7, 8, 10]
 class SynthLead(Instrument):
     TRACK_NAME_BASE = "Lead Synth"
     
-    def __init__(self, live_set, role):
-        super(SynthLead, self).__init__(live_set, role)
+    def __init__(self, live_set, role, recording_ended_callback):
+        super(SynthLead, self).__init__(live_set, role, recording_ended_callback)
         self.pending_messages = deque()
         self.output_port = mido.open_output("IAC Driver Melody %s" % self.role)
 

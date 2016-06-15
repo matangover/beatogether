@@ -3,9 +3,6 @@ from . import Instrument, Parameter
 class Drums(Instrument):
     #CLIP_COUNT = 5
     TRACK_NAME_BASE = "Drums"
-    
-    def __init__(self, live_set, role):
-        super(Drums, self).__init__(live_set, role)
         
     def set_clip_based_parameter(self, track_name, value):
         track = self.get_track(track_name)

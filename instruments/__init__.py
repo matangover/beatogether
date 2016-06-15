@@ -4,20 +4,21 @@ class Instrument(object):
     # Override this
     TRACK_NAME_BASE = None
     
-    def __init__(self, live_set, role):
+    def __init__(self, live_set, role, recording_ended_callback):
         self.live_set = live_set
         self.role = role
         self.player = None
         self.next_record_slot = 0
         self.tick_count = 0
         self.recording_stop_tick_count = None
+        self.recording_ended_callback = recording_ended_callback
         
     def get_track_named(self, name):
     	""" Returns the Track with the specified name, or None if not found. """
     	for track in self.live_set.tracks:
     		if track.name == name:
     			return track
-    	return None
+    	raise KeyError(name)
         
     def get_track_name(self, base_name=None):
         base_name = base_name or self.TRACK_NAME_BASE
@@ -47,5 +48,6 @@ class Instrument(object):
         self.recording_stop_tick_count = None
         # Play the clip again. It will stop recording and start playing back the loop.
         self.live_set.play_clip(recording_track.index, self.next_record_slot - 1)
+        self.recording_ended_callback(self.role)
         
 Parameter = namedtuple("Parameter", ("name", "set_value_func",))
