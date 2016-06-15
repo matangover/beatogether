@@ -6,13 +6,12 @@ import time
 class KinectInterface(object):
     MAX_GESTURE_DISTANCE_FROM_JOINT = 500
 
-    def __init__(self, gesture_callback, pose_callback):
-        self.visible_users = set()
-        self.skeleton_state = {}
-        self.tracked_users = {}
-        self.last_ts = None
+    def __init__(self, gesture_callback, pose_callback, user_added_callback, user_removed_callback, user_roles_changed):
         self.gesture_callback = gesture_callback
         self.pose_callback = pose_callback
+        self.user_added_callback = user_added_callback
+        self.user_removed_callback = user_removed_callback
+        self.user_roles_changed = user_roles_changed
         
     def start(self):
         openni2.initialize()
@@ -22,7 +21,7 @@ class KinectInterface(object):
         self.hand_tracker.start_gesture_detection(nite2.c_api.NiteGestureType.NITE_GESTURE_CLICK)
         #self.hand_tracker.start_gesture_detection(nite2.c_api.NiteGestureType.NITE_GESTURE_WAVE)
         self.hand_listener = HandListener(self.hand_tracker, self.gesture_received)
-        self.user_listener = UserListener(self.user_tracker, self.pose_detected)
+        self.user_listener = UserListener(self.user_tracker, self.pose_detected, self.user_added_callback, self.user_removed_callback, self.user_roles_changed)
         
     def stop(self):
         self.hand_listener.close()
@@ -65,7 +64,6 @@ class KinectInterface(object):
             return None
             
         return closest_hand[:2]
-                
     
     def pose_detected(self, user_id, pose_type):
         print "Pose detected! Type:", pose_type, " User:", user_id
@@ -101,8 +99,9 @@ class HandListener(nite2.HandTrackerListener):
 
 class UserListener(nite2.UserTrackerListener):
     POSE_HOLD_MINIMUM_TIME = 1
-
-    def __init__(self, user_tracker, pose_callback):
+    MAX_USERS = 2
+    
+    def __init__(self, user_tracker, pose_callback, user_added_callback, user_removed_callback, user_roles_changed):
         super(UserListener, self).__init__(user_tracker)
         self.last_ts = None
         self.visible_users = set()
@@ -110,6 +109,9 @@ class UserListener(nite2.UserTrackerListener):
         self.tracked_users = {}
         self.users_poses = {}
         self.pose_callback = pose_callback
+        self.user_added = user_added_callback
+        self.user_removed = user_removed_callback
+        self.user_roles_changed = user_roles_changed
 
     def on_ready_for_next_frame(self):
         if not self.user_tracker:
@@ -134,13 +136,21 @@ class UserListener(nite2.UserTrackerListener):
             self.track_skeleton_state(user)
             self.update_skeleton(user, frame_timestamp)
             self.track_poses(user, frame_timestamp)
+            
+        self.update_roles()
 
     def start_tracking_if_needed(self, user):
-        if user.is_new():
-            print "Found new user, starting to track:", user.id
-            self.user_tracker.start_skeleton_tracking(user.id)
-            self.user_tracker.start_pose_detection(user.id, nite2.c_api.NitePoseType.NITE_POSE_PSI)
-            self.user_tracker.start_pose_detection(user.id, nite2.c_api.NitePoseType.NITE_POSE_CROSSED_HANDS)
+        if not user.is_new():
+            return
+            
+        if len(self.tracked_users) >= self.MAX_USERS:
+            print "Found new user %s, but already tracking %s users - skipping" % (user.id, self.MAX_USERS)
+            return
+            
+        print "Found new user, starting to track:", user.id
+        self.user_tracker.start_skeleton_tracking(user.id)
+        self.user_tracker.start_pose_detection(user.id, nite2.c_api.NitePoseType.NITE_POSE_PSI)
+        self.user_tracker.start_pose_detection(user.id, nite2.c_api.NitePoseType.NITE_POSE_CROSSED_HANDS)
             
     def track_user_visibility(self, user):
         if user.is_visible() and not user.id in self.visible_users:
@@ -165,9 +175,14 @@ class UserListener(nite2.UserTrackerListener):
         
     def update_skeleton(self, user, frame_timestamp):
         if user.skeleton.state == nite2.c_api.NiteSkeletonState.NITE_SKELETON_TRACKED:
-            person = self.tracked_users.setdefault(user.id, Person(None, None))
+            person = self.tracked_users.get(user.id)
+            if not person:
+                person = Person()
+                self.tracked_users[user.id] = person
+                self.user_added(user.id)
             person.update_skeleton(user.skeleton, frame_timestamp)
         elif user.id in self.tracked_users:
+            self.user_removed(user.id)
             del self.tracked_users[user.id]
 
     def track_poses(self, user, frame_timestamp):
@@ -186,3 +201,41 @@ class UserListener(nite2.UserTrackerListener):
                     del user_poses[pose_type]
                     self.pose_callback(user.id, pose_type)
             
+    def update_roles(self):
+        users = self.tracked_users.items()
+        changed = False
+        
+        if len(users) == 1:
+            user_id, user = users[0]
+            # If there's only one user, determine the role based on the X position.
+            x_position = self.get_user_horizontal_position(users[0])
+            new_role = UserRole.RIGHT_USER if x_position > 0 else UserRole.LEFT_USER
+            if user.role != new_role:
+                user.role = new_role
+                changed = True
+        elif len(users) == 2:
+            rightmost_user_id, _ = max(users, key=self.get_user_horizontal_position)
+            for user_id, user in users:
+                if user_id == rightmost_user_id:
+                    new_role = UserRole.RIGHT_USER
+                else:
+                    new_role = UserRole.LEFT_USER
+                    
+                if user.role != new_role:
+                    user.role = new_role
+                    changed = True
+        else:
+            assert len(users) == 0
+            
+        if changed:
+            self.user_roles_changed()
+    
+    @staticmethod
+    def get_user_horizontal_position(user_item):
+        # TODO: Use center of mass instead of torso
+        user_id, user = user_item
+        return user.skeleton.get_joint(nite2.c_api.NiteJointType.NITE_JOINT_TORSO).position.x
+
+class UserRole(object):
+    LEFT_USER = 1
+    RIGHT_USER = 2

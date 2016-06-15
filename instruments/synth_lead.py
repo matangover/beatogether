@@ -11,25 +11,26 @@ MAX_JUMP = 7
 EOLIAN_SCALE = [0, 2, 3, 5, 7, 8, 10]
 
 class SynthLead(Instrument):
-    def __init__(self, live_set):
-        super(SynthLead, self).__init__(live_set)
+    TRACK_NAME_BASE = "Lead Synth"
+    
+    def __init__(self, live_set, role):
+        super(SynthLead, self).__init__(live_set, role)
         self.pending_messages = deque()
-        self.output_port = mido.open_output("IAC Driver Bus 1")
-        self.player = None
+        self.output_port = mido.open_output("IAC Driver Melody %s" % self.role)
 
     def set_volume(self, value):
-        track = get_track_named(self.live_set, "Lead Synth")
-        track.volume = value
+        self.get_track().volume = value
     
     def tick(self, tick_count):
         if self.player and not self.pending_messages:
             melody = self.get_notes()
-            print "Generated melody:", melody
+            #print "Generated melody:", melody
             self.pending_messages.extend(melody)
             
         if self.pending_messages:
+            print "SYNTH LEAD SENDING MESSAGES"
             messages = self.pending_messages.popleft()
-            print "Sending messages:", messages
+            #print "Sending messages:", messages
             for message in messages:
                 self.output_port.send(message)
         # print tick_count
@@ -166,10 +167,3 @@ def scale_to_range(value, min_value, max_value):
     """ Convert 0-1 value to value between min_value and max_value (inclusive) """
     scaled_value = min_value + int(value * (max_value - min_value + 1))
     return scaled_value if scaled_value <= max_value else max_value
-
-def get_track_named(live_set, name):
-	""" Returns the Track with the specified name, or None if not found. """
-	for track in live_set.tracks:
-		if track.name == name:
-			return track
-	return None

@@ -8,14 +8,13 @@ import numpy as np
 class Person(object):
     MOVEMENT_SMOOTHING_WINDOW_SIZE_SECONDS = 0.1
     
-    def __init__(self, role, user):
-        self.role = role
-        self.user = user
+    def __init__(self):
         self.param_values = [0, 0, 0, 0, 0]
         self.saved_joint_distances = DataFrame()
         self.last_joint_positions = None
         self.skeleton = None
         self.mean_joint_distance = 0
+        self.role = None
         
     def update_skeleton(self, skeleton, timestamp):
         self.skeleton = nite2.Skeleton(skeleton)

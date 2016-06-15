@@ -1,16 +1,18 @@
 from . import Instrument, Parameter
 
 class SynthHarmony(Instrument):
-    def __init__(self, live_set):
-        super(SynthHarmony, self).__init__(live_set)
+    TRACK_NAME_BASE = "Stab Synth"
+    
+    def __init__(self, live_set, role):
+        super(SynthHarmony, self).__init__(live_set, role)
 
+    def tick(self, tick_count):
+        if tick_count % 24 != 0 or not self.player:
+            # Update only every beat
+            return
+        
+        self.set_volume(self.player.param_values[3]) # Body z position
+        # Set device parameters of "Beat Repeat": grid, pitch decay, (interval, variation)
+        
     def set_volume(self, value):
-        track = get_track_named(self.live_set, "Stab Synth")
-        track.volume = value
-
-def get_track_named(live_set, name):
-	""" Returns the Track with the specified name, or None if not found. """
-	for track in live_set.tracks:
-		if track.name == name:
-			return track
-	return None
+        self.get_track().volume = value
