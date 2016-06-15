@@ -9,6 +9,7 @@ import mido
 from primesense import nite2
 from kinect import KinectInterface, UserRole
 import signal
+import graphics
 
 class KinectLooper(object):
     def __init__(self):
@@ -70,11 +71,14 @@ class KinectLooper(object):
                 track.tick(tick_count)
     
     def log_status(self):
-        print "Tracked users:", [
-            "id: %s, role: %s" % (user_id, user.role) \
-            for user_id, user in self.kinect.user_listener.tracked_users.items()
-        ]
-        print "Active tracks:", self.active_tracks
+        try:
+            print "Tracked users:", [
+                "id: %s, role: %s" % (user_id, user.role) \
+                for user_id, user in self.kinect.user_listener.tracked_users.items()
+            ]
+            print "Active tracks:", self.active_tracks
+        except:
+            pass
         
     def gesture_received(self, user_id, hand, gesture):
         if gesture.type == nite2.c_api.NiteGestureType.NITE_GESTURE_CLICK:
@@ -115,7 +119,11 @@ class KinectLooper(object):
             
     def pose_detected(self, user_id, pose):
         if pose == nite2.c_api.NitePoseType.NITE_POSE_PSI:
-            user = self.kinect.user_listener.tracked_users[user_id]
+            user = self.kinect.user_listener.tracked_users.get(user_id)
+            if not user:
+                print "user_id %s doesn't exist yet in tracked_users, ignoring" % user_id
+                return
+                
             active_track = self.active_tracks[user.role]
             if active_track is None:
                 print "Detected PSI for %s but no track is active" % user_id
@@ -157,7 +165,8 @@ class KinectLooper(object):
 def main():
     looper = KinectLooper()
     looper.start()
-    signal.pause()
+    graphics.start(looper)
+    #signal.pause()
     
 class Track(object):
     DRUMS = 0

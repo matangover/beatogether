@@ -12,6 +12,8 @@ class Instrument(object):
         self.tick_count = 0
         self.recording_stop_tick_count = None
         self.recording_ended_callback = recording_ended_callback
+        self.is_recording = False
+        self.mute_on_tick = None
         
     def get_track_named(self, name):
     	""" Returns the Track with the specified name, or None if not found. """
@@ -41,15 +43,25 @@ class Instrument(object):
         self.tick_count = tick_count
         if self.recording_stop_tick_count is not None and tick_count >= self.recording_stop_tick_count:
             self.stop_recording()
+            
+        if self.mute_on_tick is not None and tick_count >= self.mute_on_tick:
+            self.mute(True)
         
     def start_recording(self):
+        if self.is_recording:
+            print "Instrument is already recording."
+            return
+        
+        self.is_recording = True
         recording_track = self.get_recording_track()
         self.live_set.play_clip(recording_track.index, self.next_record_slot)
         self.next_record_slot += 1
         # Stop the recording after 4 bars (Ableton will wait until the beginning of the next bar).
         self.recording_stop_tick_count = self.tick_count + 24 * 4 * 4
+        
 
     def stop_recording(self):
+        self.is_recording = False
         print "Stopping recording for instrument %s, role %s" % (type(self).__name__, self.role)
         recording_track = self.get_recording_track()
         self.recording_stop_tick_count = None
@@ -58,6 +70,7 @@ class Instrument(object):
         self.recording_ended_callback(self.role)
     
     def mute(self, muted):
+        self.mute_on_tick = None
         muted = int(muted)
         track = self.get_track()
         print "Set muted for %s: %s" % (track.name, muted)
@@ -67,6 +80,7 @@ class Instrument(object):
         self.mute(False)
         
     def deactivate(self):
-        self.mute(True)
+        # Wait for next beat to mute the track
+        self.mute_on_tick = 24 * (self.tick_count / 24 + 1)
         
 Parameter = namedtuple("Parameter", ("name", "set_value_func",))

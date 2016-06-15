@@ -2,6 +2,7 @@ import math
 from Person import Person, calcDist
 from primesense import openni2, nite2
 import time
+import traceback
 
 class KinectInterface(object):
     MAX_GESTURE_DISTANCE_FROM_JOINT = 500
@@ -28,13 +29,19 @@ class KinectInterface(object):
         self.user_listener.close()
         nite2.unload()
 
-    # def get_joint_positions(self):
-    #     positionList = []
-    #     for i in range(15):
-    #         position = self.skeleton.get_joint(i).position
-    #         x, y = self.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
-    #         positionList.append((x,y))
-    #     return positionList
+    def get_joint_positions(self):
+        positionList = []
+        for user_id, user in self.user_listener.tracked_users.items():
+            positions = []
+            try:
+                for i in range(15):
+                    position = user.skeleton.get_joint(i).position
+                    x, y = self.user_listener.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
+                    positions.append((x,y))
+                positionList.append(positions)
+            except:
+                traceback.print_exc("Failed saving user position")
+        return positionList
         
     def gesture_received(self, gesture):
         print "Gesture! Type:", gesture.type, " Position:", gesture.currentPosition
@@ -225,7 +232,8 @@ class UserListener(nite2.UserTrackerListener):
                     user.role = new_role
                     changed = True
         else:
-            assert len(users) == 0
+            #assert len(users) == 0
+            print "More than 2 users"
             
         if changed:
             self.user_roles_changed()

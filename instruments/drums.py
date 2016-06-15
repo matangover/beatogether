@@ -32,9 +32,10 @@ class Drums(Instrument):
         self.set_clip_based_parameter("Tambourine", value)
 
     def mute(self, muted):
+        self.mute_on_tick = None
         muted = int(muted)
         track = self.get_track("0. Drums")
-        print "Set drums muted for %s: %s" % (track.name, muted)
+        print "Set muted for %s: %s" % (track.name, muted)
         self.live_set.set_track_mute(track.index, muted)
 
     _parameters = [
