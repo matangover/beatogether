@@ -105,7 +105,15 @@ class KinectLooper(object):
             self.user_tracks[user.role][track].player = user
             
     def pose_detected(self, user_id, pose):
-        pass
+        if pose == nite2.c_api.NitePoseType.NITE_POSE_PSI:
+            user = self.kinect.user_listener.tracked_users[user_id]
+            active_track = self.active_tracks[user.role]
+            if active_track is None:
+                print "Detected PSI for %s but no track is active" % user_id
+                return
+            print "Starting to record for role %s track %s" % (user.role, active_track)
+            instrument = self.user_tracks[user.role][active_track]
+            instrument.start_recording()
         
     def user_roles_changed(self):
         print "User roles changed! New roles:", [

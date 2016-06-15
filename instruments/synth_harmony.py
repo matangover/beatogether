@@ -7,6 +7,8 @@ class SynthHarmony(Instrument):
         super(SynthHarmony, self).__init__(live_set, role)
 
     def tick(self, tick_count):
+        super(SynthHarmony, self).tick(tick_count)
+        
         if tick_count % 24 != 0 or not self.player:
             # Update only every beat
             return

@@ -22,13 +22,15 @@ class SynthLead(Instrument):
         self.get_track().volume = value
     
     def tick(self, tick_count):
+        super(SynthLead, self).tick(tick_count)
+        
         if self.player and not self.pending_messages:
             melody = self.get_notes()
             #print "Generated melody:", melody
             self.pending_messages.extend(melody)
             
         if self.pending_messages:
-            print "SYNTH LEAD SENDING MESSAGES"
+            #print "SYNTH LEAD SENDING MESSAGES"
             messages = self.pending_messages.popleft()
             #print "Sending messages:", messages
             for message in messages:

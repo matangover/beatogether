@@ -2,6 +2,7 @@ from . import Instrument, Parameter
 
 class Drums(Instrument):
     #CLIP_COUNT = 5
+    TRACK_NAME_BASE = "Drums"
     
     def __init__(self, live_set, role):
         super(Drums, self).__init__(live_set, role)
@@ -16,6 +17,8 @@ class Drums(Instrument):
             track.stop()
     
     def tick(self, tick_count):
+        super(Drums, self).tick(tick_count)
+        
         if tick_count % 24 != 0 or not self.player:
             # Update only every beat
             return
