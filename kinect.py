@@ -233,7 +233,8 @@ class UserListener(nite2.UserTrackerListener):
                     changed = True
         else:
             #assert len(users) == 0
-            print "More than 2 users"
+            if len(users) != 0:
+                print "More than 2 users"
             
         if changed:
             self.user_roles_changed()

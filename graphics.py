@@ -6,7 +6,7 @@ def start(looper):
     COLOR = (0,255,0)
     FRAMERATE = 1.0/10
     window = pyglet.window.Window()
-    window.set_size(1200, 800)
+    window.set_size(1100, 750)
     batch = pyglet.graphics.Batch()
     height, width = window.get_size()
     
