@@ -56,6 +56,7 @@ def start(looper):
     @window.event
     def on_key_press(symbol, modifiers):
         if symbol == pyglet.window.key.Q:
+            print "Exiting Pyglet app"
             pyglet.app.exit()
 
     pyglet.app.run()

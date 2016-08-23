@@ -8,7 +8,7 @@ class SynthHarmony(Instrument):
         super(SynthHarmony, self).tick(tick_count)
         # if self.role == 1 and tick_count % 24*4 == 0:
         #     print "Role 1. Player:", self.player
-        #print "SYNTH HARMONY TICK"
+        #print "SYNTH HARMONY TICK", self.role, self.player
         if not self.player or self.tick_count % 24 != 0:
             return
         #self.set_volume(self.player.param_values[3]) # Body z position

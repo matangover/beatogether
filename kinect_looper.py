@@ -11,6 +11,7 @@ from primesense import nite2
 from kinect import KinectInterface, UserRole
 import signal
 import graphics
+import pyglet
 
 class KinectLooper(object):
     def __init__(self):
@@ -40,7 +41,10 @@ class KinectLooper(object):
             "Didn't find all tracks, make sure groups are expanded in Ableton!"
         )
         for track in self.live_set.group_named("0. Recordings").tracks:
-            assert len(track.clips) == 0, "Found clips in track '%s', please delete all clips in Ableton" % track.name
+            assert len(track.clips) == 0, (
+                "Found clips in track '%s', "
+                "please delete all 'Recording' clips in Ableton" % track.name
+            )
         for track in self.live_set.tracks:
             self.live_set.set_track_mute(track.index, 0)
             track.stop()
@@ -48,7 +52,8 @@ class KinectLooper(object):
         self.live_set.time = 0
         for track_to_play in ("Stab Synth 1", "Stab Synth 2"):
             track = self.get_track_named(track_to_play)
-            track.volume = 0
+            # track.volume = 0
+            track.mute = 1
             track.clips[0].play()
         
         
@@ -68,10 +73,18 @@ class KinectLooper(object):
         self.ableton_thread.daemon = True
         self.ableton_thread.start()
 
-    def ableton_thread_func(self):        
-        self.midi_clock_loop()
-        print "Ableton thread exited"
-        self.ableton_thread_exited_event.set()
+    def ableton_thread_func(self):
+        try:
+            self.midi_clock_loop()
+        except:
+            print "Caught exception in Ableton thread"
+            traceback.print_exc()
+            print "Exiting Pyglet app from Ableton thread"
+            pyglet.app.exit()
+        finally:
+            self.live_set.stop()
+            print "Ableton thread setting exit event"
+            self.ableton_thread_exited_event.set()
         
     def midi_clock_loop(self):
         clock_input = mido.open_input("IAC Driver Clock")
@@ -82,6 +95,7 @@ class KinectLooper(object):
         # One 1/16 note = 4 clock ticks =~ 80ms.
         for message in clock_input:
             if self.ableton_thread_stop_event.is_set():
+                print "Ableton thread received exit signal"
                 return
                 
             if message.type == "start":
@@ -215,6 +229,7 @@ def main():
     looper.start()
     graphics.start(looper)
     # This code will only run if the user quits the app (by pressing Q or closing the window)
+    # (or if the Ableton thread crashes and exits the pyglet app.)
     looper.stop()
     
 class Track(object):

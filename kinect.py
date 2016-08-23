@@ -25,9 +25,11 @@ class KinectInterface(object):
         self.user_listener = UserListener(self.user_tracker, self.pose_detected, self.user_added_callback, self.user_removed_callback, self.user_roles_changed)
         
     def stop(self):
+        print "Closing Kinect interfaces"
         self.hand_listener.close()
         self.user_listener.close()
         nite2.unload()
+        print "Kinect interfaces closed"
 
     def get_joint_positions(self):
         positionList = []
