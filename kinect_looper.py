@@ -1,9 +1,10 @@
+import os
 import sys
 import live
 from instruments.drums import Drums
 from instruments.synth_lead import SynthLead, scale_to_range
 from instruments.synth_harmony import SynthHarmony
-from threading import Thread
+from threading import Thread, Event
 import time
 import mido
 from primesense import nite2
@@ -15,17 +16,42 @@ class KinectLooper(object):
     def __init__(self):
         # TODO: add callback for user lost, to remove 'player' from instruments.
         self.kinect = KinectInterface(self.gesture_received, self.pose_detected, self.user_added, self.user_removed, self.user_roles_changed)
+        self.ableton_thread_stop_event = Event()
+        self.ableton_thread_exited_event = Event()
         
     def start(self):
         self.start_ableton_thread()
         self.kinect.start()
         
     def start_ableton_thread(self):
+        is_running = os.system("ps axc -o command  | grep -q ^Live$") == 0
+        if not is_running:
+            raise RuntimeError("Please run Abelton and open the Looper project")
+        print "Initializing Ableton connection"
         # Initialization is done on the main thread.
         self.live_set = live.Set()
         # Patch pylive's console dumping.
         self.live_set.dump = lambda *args: None
         self.live_set.scan(scan_clip_names=True, scan_devices=True)
+        
+        print "Setting up Ableton session"
+        assert self.live_set.tempo == 120, "Tempo must be 120"
+        assert len(self.live_set.tracks) == 23, (
+            "Didn't find all tracks, make sure groups are expanded in Ableton!"
+        )
+        for track in self.live_set.group_named("0. Recordings").tracks:
+            assert len(track.clips) == 0, "Found clips in track '%s', please delete all clips in Ableton" % track.name
+        for track in self.live_set.tracks:
+            self.live_set.set_track_mute(track.index, 0)
+            track.stop()
+        self.live_set.stop()
+        self.live_set.time = 0
+        for track_to_play in ("Stab Synth 1", "Stab Synth 2"):
+            track = self.get_track_named(track_to_play)
+            track.volume = 0
+            track.clips[0].play()
+        
+        
         self.beat_length = 60 / self.live_set.tempo 
         
         self.user_tracks = {}
@@ -44,6 +70,8 @@ class KinectLooper(object):
 
     def ableton_thread_func(self):        
         self.midi_clock_loop()
+        print "Ableton thread exited"
+        self.ableton_thread_exited_event.set()
         
     def midi_clock_loop(self):
         clock_input = mido.open_input("IAC Driver Clock")
@@ -53,6 +81,9 @@ class KinectLooper(object):
         # For 130 BPM, beat_length=6/13sec, so MIDI clock tick is every 1/52sec =~ 19.23ms.
         # One 1/16 note = 4 clock ticks =~ 80ms.
         for message in clock_input:
+            if self.ableton_thread_stop_event.is_set():
+                return
+                
             if message.type == "start":
                 tick_count = 0
             elif message.type == "clock":
@@ -160,18 +191,37 @@ class KinectLooper(object):
         for user_id, user in self.kinect.user_listener.tracked_users.items():
             if user.role == role:
                 return user_id
+                
+    def get_track_named(self, name):
+    	""" Returns the Track with the specified name, or None if not found. """
+    	for track in self.live_set.tracks:
+    		if track.name == name:
+    			return track
+    	raise KeyError(name)
+        
+    def stop(self):
+        print "Stopping Kinect"
+        self.kinect.stop()
+        print "Stopping Ableton thread"
+        self.ableton_thread_stop_event.set()
+        print "Waiting for Ableton thread to finish"
+        exited_gracefully = self.ableton_thread_exited_event.wait(5)
+        if not exited_gracefully:
+            print "Ableton thread not stopped after 5 seconds, exiting anyway."
 
 
 def main():
     looper = KinectLooper()
     looper.start()
     graphics.start(looper)
-    #signal.pause()
+    # This code will only run if the user quits the app (by pressing Q or closing the window)
+    looper.stop()
     
 class Track(object):
     DRUMS = 0
     HARMONY = 1
     MELODY = 2
+
 
 
     

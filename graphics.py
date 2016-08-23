@@ -53,4 +53,9 @@ def start(looper):
         batch.draw()
         pyglet.clock.schedule_interval(lambda dt: None, FRAMERATE)
 
+    @window.event
+    def on_key_press(symbol, modifiers):
+        if symbol == pyglet.window.key.Q:
+            pyglet.app.exit()
+
     pyglet.app.run()
