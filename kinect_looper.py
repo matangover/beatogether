@@ -12,6 +12,7 @@ from kinect import KinectInterface, UserRole
 import signal
 import graphics
 import pyglet
+import traceback
 
 class KinectLooper(object):
     def __init__(self):
