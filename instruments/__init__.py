@@ -78,6 +78,7 @@ class Instrument(object):
         
     def activate(self):
         self.mute(False)
+        self.get_recording_track().stop()
         
     def deactivate(self):
         # Wait for next beat to mute the track
