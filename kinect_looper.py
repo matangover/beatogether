@@ -148,6 +148,9 @@ class KinectLooper(object):
     def activate_track(self, user_id, track):
         user = self.kinect.user_listener.tracked_users[user_id]
         role = user.role
+        if role not in self.active_tracks:
+            print "Tried to activate track %s for user %s but user's role %s doesn't have active track" % (track, user_id, role)
+            return
         previous_track = self.active_tracks[role]
         if previous_track == track:
             print "Tried to activate track %s for user %s but it's already active" % (track, user_id)
@@ -193,6 +196,10 @@ class KinectLooper(object):
     def user_removed(self, user_id):
         print "User removed:", user_id
         self.activate_track(user_id, None)
+        user = self.kinect.user_listener.tracked_users[user_id]
+        if user.role in self.user_tracks:
+            for track in self.user_tracks[user.role].values():
+                track.get_recording_track().stop()
 
     def recording_ended(self, role):
         print "Activating next track for role: %s" % role

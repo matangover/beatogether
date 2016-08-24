@@ -48,6 +48,31 @@ class KinectInterface(object):
                 traceback.print_exc("Failed saving user position")
         return positionList
         
+    def get_visible_user_joint_positions(self):
+        users = {}
+        for user_id, user in self.user_listener.tracked_users.items():
+            if user_id not in self.user_listener.visible_users:
+                continue
+            if user.role is None:
+                continue
+            try:    
+                users[user.role] = self.get_user_joint_positions(user)
+            except:
+                traceback.print_exc("Failed saving user position")
+        return users
+    
+    def get_user_joint_positions(self, user):
+        positions = []
+        for i in range(15):
+            joint = user.skeleton.get_joint(i)
+            if joint.positionConfidence < 0.5:
+                #print "Not confident! Role:", user.role, "Joint:", i, "Conf:", joint.positionConfidence
+                continue
+            position = joint.position
+            x, y = self.user_listener.user_tracker.convert_joint_coordinates_to_depth(position.x, position.y, position.z)
+            positions.append((x,y))
+        return positions
+            
     def gesture_received(self, gesture):
         print "Gesture! Type:", gesture.type, " Position:", gesture.currentPosition
         hand_data = self.get_hand(gesture.currentPosition)

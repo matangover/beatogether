@@ -18,8 +18,8 @@ def start(looper):
         window.clear()
 
         sprites = []
-        for i, positions in enumerate(looper.kinect.get_joint_positions()[:2]):
-            image = images[i]
+        for role, positions in looper.kinect.get_visible_user_joint_positions().iteritems():
+            image = images[role - 1]
             for x, y in positions:
                 if math.isnan(x) or math.isnan(y) or math.isinf(x) or math.isinf(y):
                     continue
