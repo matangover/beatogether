@@ -13,7 +13,7 @@ def start(looper):
     print "SIZE:", height, width
     images = [pyglet.image.load(os.path.join(os.path.dirname(__file__), 'image%s.png' % (i+1))) for i in range(2)]
     
-    @window.event()
+    @window.event
     def on_draw():
         window.clear()
 
@@ -42,7 +42,7 @@ def start(looper):
                 sprite.x = player * 700 + 100 + track_idx * 70
                 sprite.y = 40
                 
-                if looper.active_tracks[role] == track:
+                if looper.active_tracks[role] == track_idx:
                     sprite.y += 20
                 if track.is_recording:
                     sprite.y += 20
@@ -55,7 +55,7 @@ def start(looper):
 
     @window.event
     def on_key_press(symbol, modifiers):
-        if symbol == pyglet.window.key.Q:
+        if symbol == pyglet.window.key.ESCAPE:
             print "Exiting Pyglet app"
             pyglet.app.exit()
 

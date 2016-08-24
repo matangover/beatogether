@@ -229,8 +229,8 @@ def main():
     looper = KinectLooper()
     looper.start()
     graphics.start(looper)
-    # This code will only run if the user quits the app (by pressing Q or closing the window)
-    # (or if the Ableton thread crashes and exits the pyglet app.)
+    # This code will only run if the user quits the app (by pressing Esc or closing the window),
+    # or if the Ableton thread crashes and exits the pyglet app.
     looper.stop()
     
 class Track(object):
