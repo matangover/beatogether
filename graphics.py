@@ -45,7 +45,7 @@ def start(looper):
                 if looper.active_tracks[role] == track_idx:
                     sprite.y += 20
                 if track.is_recording:
-                    sprite.y += 20
+                    sprite.y += 30
                 #sprite.scale = 0.5
                 sprites.append(sprite)
 
