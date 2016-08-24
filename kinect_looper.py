@@ -39,7 +39,8 @@ class KinectLooper(object):
         print "Setting up Ableton session"
         assert self.live_set.tempo == 120, "Tempo must be 120"
         assert len(self.live_set.tracks) == 23, (
-            "Didn't find all tracks, make sure groups are expanded in Ableton!"
+            "Didn't find all tracks, make sure you have the right file opened "
+            "and that groups are expanded in Ableton!"
         )
         for track in self.live_set.group_named("0. Recordings").tracks:
             assert len(track.clips) == 0, (
@@ -215,15 +216,14 @@ class KinectLooper(object):
     	raise KeyError(name)
         
     def stop(self):
-        print "Stopping Kinect"
-        self.kinect.stop()
         print "Stopping Ableton thread"
         self.ableton_thread_stop_event.set()
         print "Waiting for Ableton thread to finish"
         exited_gracefully = self.ableton_thread_exited_event.wait(5)
         if not exited_gracefully:
             print "Ableton thread not stopped after 5 seconds, exiting anyway."
-
+        print "Stopping Kinect"
+        self.kinect.stop()
 
 def main():
     looper = KinectLooper()

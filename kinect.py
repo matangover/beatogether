@@ -26,9 +26,12 @@ class KinectInterface(object):
         
     def stop(self):
         print "Closing Kinect interfaces"
-        self.hand_listener.close()
-        self.user_listener.close()
+        #self.hand_listener.close()
+        #self.user_listener.close()
+        #nite2.c_api.niteShutdown()
+        #openni2.c_api.oniShutdown()
         nite2.unload()
+        openni2.unload()
         print "Kinect interfaces closed"
 
     def get_joint_positions(self):
