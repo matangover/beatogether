@@ -213,36 +213,57 @@ class UserListener(nite2.UserTrackerListener):
                     del user_poses[pose_type]
                     self.pose_callback(user.id, pose_type)
             
-    def update_roles(self):
-        users = self.tracked_users.items()
-        changed = False
-        
-        if len(users) == 1:
-            user_id, user = users[0]
-            # If there's only one user, determine the role based on the X position.
-            x_position = self.get_user_horizontal_position(users[0])
-            new_role = UserRole.RIGHT_USER if x_position > 0 else UserRole.LEFT_USER
-            if user.role != new_role:
-                user.role = new_role
-                changed = True
-        elif len(users) == 2:
-            rightmost_user_id, _ = max(users, key=self.get_user_horizontal_position)
-            for user_id, user in users:
-                if user_id == rightmost_user_id:
-                    new_role = UserRole.RIGHT_USER
-                else:
-                    new_role = UserRole.LEFT_USER
-                    
-                if user.role != new_role:
-                    user.role = new_role
-                    changed = True
-        else:
-            #assert len(users) == 0
-            if len(users) != 0:
-                print "More than 2 users"
+    # def update_roles_OLD(self):
+    #     users = self.tracked_users.items()
+    #     changed = False
+    #     
+    #     if len(users) == 1:
+    #         user_id, user = users[0]
+    #         # If there's only one user, determine the role based on the X position.
+    #         x_position = self.get_user_horizontal_position(users[0])
+    #         new_role = UserRole.RIGHT_USER if x_position > 0 else UserRole.LEFT_USER
+    #         if user.role != new_role:
+    #             user.role = new_role
+    #             changed = True
+    #     elif len(users) == 2:
+    #         rightmost_user_id, _ = max(users, key=self.get_user_horizontal_position)
+    #         for user_id, user in users:
+    #             if user_id == rightmost_user_id:
+    #                 new_role = UserRole.RIGHT_USER
+    #             else:
+    #                 new_role = UserRole.LEFT_USER
+    #                 
+    #             if user.role != new_role:
+    #                 user.role = new_role
+    #                 changed = True
+    #     else:
+    #         #assert len(users) == 0
+    #         if len(users) != 0:
+    #             print "More than 2 users"
+    #         
+    #     if changed:
+    #         self.user_roles_changed()
             
-        if changed:
-            self.user_roles_changed()
+    def update_roles(self):
+        if len(self.tracked_users) == 0:
+            return
+        if len(self.tracked_users) > 2:
+            print "Huh? More than 2 tracked users in update_roles"
+            return
+            
+        existing_roles = [user.role for user in self.tracked_users.values()]
+        if all(existing_roles):
+            # All tracked users already have a role
+            return
+        
+        users = self.tracked_users.items()
+        all_roles = set((UserRole.LEFT_USER, UserRole.RIGHT_USER))
+        used_roles = set(filter(None, existing_roles))
+        available_roles = sorted(all_roles - used_roles)
+        for user_id, user in users:
+            if user.role is None:
+                user.role = available_roles.pop(0)
+                self.user_roles_changed(user_id)
     
     @staticmethod
     def get_user_horizontal_position(user_item):

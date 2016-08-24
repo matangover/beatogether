@@ -179,15 +179,13 @@ class KinectLooper(object):
             instrument = self.user_tracks[user.role][active_track]
             instrument.start_recording()
         
-    def user_roles_changed(self):
+    def user_roles_changed(self, changed_user_id):
         print "User roles changed! New roles:", [
             (user_id, user.role) for user_id, user
             in self.kinect.user_listener.tracked_users.items()
         ]
-        # Activate drums track for all users.
-        # TODO: Keep active tracks for existing user?
-        for user_id in self.kinect.user_listener.tracked_users:
-            self.activate_track(user_id, Track.DRUMS)
+        # Activate drums track for changed user.
+        self.activate_track(changed_user_id, Track.DRUMS)
         
     def user_added(self, user_id):
         print "User added:", user_id
